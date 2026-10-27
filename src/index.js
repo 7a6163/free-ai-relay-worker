@@ -1,0 +1,68 @@
+const UPSTREAM = "https://api.free.ai/v1";
+// "*" is safe: auth is a bearer key the caller sends, never a cookie.
+const CORS = { "Access-Control-Allow-Origin": "*" };
+
+// Upstream errors are {"error":"msg"}; OpenAI clients expect {"error":{"message":...}}.
+async function upstreamError(res) {
+  const text = await res.text();
+  let message = text;
+  try { message = JSON.parse(text).error ?? text; } catch {}
+  return Response.json({ error: { message, type: "upstream_error", code: res.status } }, { status: res.status });
+}
+
+async function route(request) {
+  const { pathname } = new URL(request.url);
+  // Pass the client's key through; the relay holds no secret of its own.
+  const auth = request.headers.get("Authorization");
+
+  if (request.method === "POST" && pathname === "/v1/chat/completions") {
+    const res = await fetch(`${UPSTREAM}/chat/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(auth && { Authorization: auth }) },
+      body: request.body,
+    });
+    if (!res.ok) return upstreamError(res);
+    // Stream the body straight through so `stream: true` works if upstream supports it.
+    return new Response(res.body, {
+      status: res.status,
+      headers: { "Content-Type": res.headers.get("Content-Type") ?? "application/json" },
+    });
+  }
+
+  if (request.method === "GET" && pathname === "/v1/models") {
+    const res = await fetch(`${UPSTREAM}/models`);
+    if (!res.ok) return upstreamError(res);
+    const { models } = await res.json();
+    return Response.json({
+      object: "list",
+      data: models
+        .filter((m) => m.type === "chat" || m.type === "code")
+        .map((m) => ({ id: m.id, object: "model", created: 0, owned_by: "free.ai" })),
+    });
+  }
+
+  return Response.json(
+    { error: { message: `Unknown route: ${request.method} ${pathname}`, type: "invalid_request_error" } },
+    { status: 404 },
+  );
+}
+
+export default {
+  async fetch(request) {
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...CORS,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Authorization, Content-Type",
+          "Access-Control-Max-Age": "86400",
+        },
+      });
+    }
+    // Every response is built here (never a raw upstream one), so its headers are mutable.
+    const res = await route(request);
+    for (const [k, v] of Object.entries(CORS)) res.headers.set(k, v);
+    return res;
+  },
+};

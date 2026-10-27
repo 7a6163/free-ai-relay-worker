@@ -4,10 +4,10 @@ A Cloudflare Worker that exposes the [free.ai](https://free.ai/api/) API in the 
 
 ## Features
 
-| Relay route                 | free.ai endpoint | Transformation                                                                              |
-| --------------------------- | ---------------- | ------------------------------------------------------------------------------------------- |
-| `POST /v1/chat/completions` | `POST /v1/chat/` | Forwarded as-is, `stream: true` supported                                                   |
-| `GET /v1/models`            | `GET /v1/models` | Converted to OpenAI's `{"object":"list","data":[...]}`, self-hosted chat / code models only |
+| Relay route                 | free.ai endpoint | Transformation                                                                                |
+| --------------------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| `POST /v1/chat/completions` | `POST /v1/chat/` | Forwarded as-is, `stream: true` supported                                                     |
+| `GET /v1/models`            | `GET /v1/models` | Converted to OpenAI's `{"object":"list","data":[...]}`, lists only `qwen7b` and `deepseek-r1` |
 
 - Thinking models' `reasoning` is also copied to `reasoning_content` (DeepSeek convention), in both normal and streamed responses
 - Upstream errors `{"error":"..."}` are converted to OpenAI's `{"error":{"message":...}}`
@@ -67,6 +67,6 @@ Before deploying to your own account, change or remove `account_id` in `wrangler
 
 ## Caveats
 
-- Only self-hosted models run on the free daily allowance; other models (even ones tagged `:free`) need purchased tokens. `/v1/models` lists only self-hosted ones, but any model id can still be used directly.
+- Only self-hosted models run on the free daily allowance; other models (even ones tagged `:free`) need purchased tokens. `/v1/models` lists only `qwen7b` and `deepseek-r1`, but any model id can still be used directly.
 - free.ai's self-hosted models currently don't validate the key, so anyone who knows the relay URL can use it.
 - Free-tier limits may be per source IP, so requests through Cloudflare may share rate limits.

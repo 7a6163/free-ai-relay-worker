@@ -1,6 +1,9 @@
 const UPSTREAM = "https://api.free.ai/v1";
 // "*" is safe: auth is a bearer key the caller sends, never a cookie.
 const CORS = { "Access-Control-Allow-Origin": "*" };
+// The free self-hosted chat models are all aliases of one model, with or without thinking.
+// Other ids (aliases, paid models) still work; they're just not listed.
+const LISTED_MODELS = ["qwen7b", "deepseek-r1"];
 
 // Upstream errors are {"error":"msg"} or {"error":{"error":"msg","code":"..."}};
 // OpenAI clients expect {"error":{"message":"<string>",...}}.
@@ -89,8 +92,7 @@ async function route(request) {
     return Response.json({
       object: "list",
       data: models
-        // Only self-hosted models run on the free allowance; paid ones still work by id.
-        .filter((m) => m.self_hosted && (m.type === "chat" || m.type === "code"))
+        .filter((m) => LISTED_MODELS.includes(m.id))
         .map((m) => ({ id: m.id, object: "model", created: 0, owned_by: "free.ai" })),
     });
   }

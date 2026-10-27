@@ -83,11 +83,14 @@ test("chat is forwarded to free.ai /v1/chat/ with the client's key and body", as
   assert.deepEqual(await new Response(calls[0].init.body).json(), body);
 });
 
-test("models are listed in OpenAI format, self-hosted chat and code only", async () => {
+test("models lists only qwen7b and deepseek-r1, in OpenAI format", async () => {
   upstream = () =>
     Response.json({
       models: [
         { id: "qwen7b", type: "chat", self_hosted: true },
+        { id: "deepseek-r1", type: "chat", self_hosted: true },
+        // Aliases of the same self-hosted model: hidden to avoid a misleading list.
+        { id: "mistral", type: "chat", self_hosted: true },
         { id: "qwen-coder", type: "code", self_hosted: true },
         { id: "sdxl", type: "image", self_hosted: true },
         // Paid provider: needs purchased tokens even when tagged :free.
@@ -102,7 +105,7 @@ test("models are listed in OpenAI format, self-hosted chat and code only", async
     object: "list",
     data: [
       { id: "qwen7b", object: "model", created: 0, owned_by: "free.ai" },
-      { id: "qwen-coder", object: "model", created: 0, owned_by: "free.ai" },
+      { id: "deepseek-r1", object: "model", created: 0, owned_by: "free.ai" },
     ],
   });
 });

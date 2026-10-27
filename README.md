@@ -38,10 +38,12 @@ print(client.chat.completions.create(model="qwen7b", messages=[{"role": "user", 
 
 ## Development
 
-Requires Node 18+. Tests need no dependencies.
+Requires Node 24+ (see `.node-version`).
 
 ```bash
+npm ci
 npm test          # node:test; free.ai is replaced by a fake fetch at the network boundary
+npm run lint      # oxlint
 npm run dev       # run locally (wrangler dev)
 npm run deploy    # deploy to Cloudflare
 ```

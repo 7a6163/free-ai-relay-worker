@@ -83,13 +83,15 @@ test("chat is forwarded to free.ai /v1/chat/ with the client's key and body", as
   assert.deepEqual(await new Response(calls[0].init.body).json(), body);
 });
 
-test("models are listed in OpenAI format, chat and code only", async () => {
+test("models are listed in OpenAI format, self-hosted chat and code only", async () => {
   upstream = () =>
     Response.json({
       models: [
-        { id: "qwen7b", type: "chat" },
-        { id: "qwen-coder", type: "code" },
-        { id: "sdxl", type: "image" },
+        { id: "qwen7b", type: "chat", self_hosted: true },
+        { id: "qwen-coder", type: "code", self_hosted: true },
+        { id: "sdxl", type: "image", self_hosted: true },
+        // Paid provider: needs purchased tokens even when tagged :free.
+        { id: "google/gemma-4-31b-it:free", type: "chat" },
       ],
     });
 

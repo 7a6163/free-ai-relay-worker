@@ -89,7 +89,8 @@ async function route(request) {
     return Response.json({
       object: "list",
       data: models
-        .filter((m) => m.type === "chat" || m.type === "code")
+        // Only self-hosted models run on the free allowance; paid ones still work by id.
+        .filter((m) => m.self_hosted && (m.type === "chat" || m.type === "code"))
         .map((m) => ({ id: m.id, object: "model", created: 0, owned_by: "free.ai" })),
     });
   }

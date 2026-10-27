@@ -1,28 +1,28 @@
 # free-ai-relay
 
-把 [free.ai](https://free.ai/api/) 的 API 包成標準 OpenAI 相容格式的 Cloudflare Worker，讓任何支援 OpenAI API 的工具（SDK、Chat UI、IDE 外掛）都能直接使用。
+A Cloudflare Worker that exposes the [free.ai](https://free.ai/api/) API in the standard OpenAI-compatible format, so any tool that speaks the OpenAI API (SDKs, chat UIs, IDE plugins) can use it directly.
 
-## 功能
+## Features
 
-| Relay 路徑 | 對應 free.ai | 轉換 |
+| Relay route | free.ai endpoint | Transformation |
 |---|---|---|
-| `POST /v1/chat/completions` | `POST /v1/chat/` | 原樣轉發，支援 `stream: true` |
-| `GET /v1/models` | `GET /v1/models` | 轉成 OpenAI 的 `{"object":"list","data":[...]}`，只列 chat / code 模型 |
+| `POST /v1/chat/completions` | `POST /v1/chat/` | Forwarded as-is, `stream: true` supported |
+| `GET /v1/models` | `GET /v1/models` | Converted to OpenAI's `{"object":"list","data":[...]}`, chat / code models only |
 
-- 上游錯誤 `{"error":"..."}` 轉成 OpenAI 的 `{"error":{"message":...}}`
-- 支援 CORS，可從瀏覽器直接呼叫
-- Relay 不保存任何 key，client 送來的 `Authorization` 直接轉給 free.ai
+- Upstream errors `{"error":"..."}` are converted to OpenAI's `{"error":{"message":...}}`
+- CORS enabled, so browsers can call it directly
+- The relay stores no keys: the client's `Authorization` header is passed straight through to free.ai
 
-## 使用
+## Usage
 
-在 OpenAI 相容工具中設定：
+Configure your OpenAI-compatible tool with:
 
-- **Base URL**：`https://<你的 worker>.workers.dev/v1`
-- **API key**：你的 free.ai key（`sk-free-...`）
-- **Model**：例如 `qwen7b`，完整清單見 `GET /v1/models`
+- **Base URL**: `https://<your-worker>.workers.dev/v1`
+- **API key**: your free.ai key (`sk-free-...`)
+- **Model**: e.g. `qwen7b`; see `GET /v1/models` for the full list
 
 ```bash
-curl https://<你的 worker>.workers.dev/v1/chat/completions \
+curl https://<your-worker>.workers.dev/v1/chat/completions \
   -H "Authorization: Bearer $FREE_AI_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model": "qwen7b", "messages": [{"role": "user", "content": "Hello!"}]}'
@@ -31,23 +31,23 @@ curl https://<你的 worker>.workers.dev/v1/chat/completions \
 ```python
 from openai import OpenAI
 
-client = OpenAI(base_url="https://<你的 worker>.workers.dev/v1", api_key="sk-free-...")
+client = OpenAI(base_url="https://<your-worker>.workers.dev/v1", api_key="sk-free-...")
 print(client.chat.completions.create(model="qwen7b", messages=[{"role": "user", "content": "Hello!"}]).choices[0].message.content)
 ```
 
-## 開發
+## Development
 
-需要 Node 18+，測試不需安裝任何套件。
+Requires Node 18+. Tests need no dependencies.
 
 ```bash
-npm test          # node:test，free.ai 在網路邊界以假 fetch 取代
-npm run dev       # 本機啟動（wrangler dev）
-npm run deploy    # 部署到 Cloudflare
+npm test          # node:test; free.ai is replaced by a fake fetch at the network boundary
+npm run dev       # run locally (wrangler dev)
+npm run deploy    # deploy to Cloudflare
 ```
 
-部署到自己的帳號前，修改或移除 `wrangler.jsonc` 中的 `account_id`。
+Before deploying to your own account, change or remove `account_id` in `wrangler.jsonc`.
 
-## 注意
+## Caveats
 
-- free.ai 的自架模型目前不驗證 key，任何知道 relay 網址的人都能使用。
-- 免費額度可能以來源 IP 計算，經過 Cloudflare 的請求可能共用限流。
+- free.ai's self-hosted models currently don't validate the key, so anyone who knows the relay URL can use it.
+- Free-tier limits may be per source IP, so requests through Cloudflare may share rate limits.

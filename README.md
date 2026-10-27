@@ -36,6 +36,20 @@ client = OpenAI(base_url="https://<your-worker>.workers.dev/v1", api_key="sk-fre
 print(client.chat.completions.create(model="qwen7b", messages=[{"role": "user", "content": "Hello!"}]).choices[0].message.content)
 ```
 
+## Recommended models
+
+**Free tier:** use `qwen7b`. All self-hosted chat models (`qwen7b`, `qwen-coder`, `mistral`, `qwen3-8b`, ...) are aliases of the same model (`Qwen/Qwen3-30B-A3B-Instruct`). Use `deepseek-r1` to also get the model's thinking in `reasoning_content`.
+
+**With purchased tokens:** any model id from free.ai works, even though `/v1/models` doesn't list it. Cheapest Google options (prices per 1M tokens, October 2026):
+
+| Model                          | Input | Output |
+| ------------------------------ | ----- | ------ |
+| `google/gemini-2.5-flash-lite` | $0.10 | $0.40  |
+| `google/gemini-3.1-flash-lite` | $0.25 | $1.50  |
+| `google/gemma-3-4b-it`         | $0.05 | $0.10  |
+
+Models tagged `:free` (e.g. `google/gemma-4-31b-it:free`) still require purchased tokens. Prices change; check `https://api.free.ai/v1/models`.
+
 ## Development
 
 Requires Node 24+ (see `.node-version`).

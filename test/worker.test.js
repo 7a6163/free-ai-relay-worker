@@ -139,3 +139,42 @@ test("every response carries the CORS origin header", async () => {
 
   for (const res of [ok, failed, models, missing]) assert.equal(res.headers.get("Access-Control-Allow-Origin"), "*");
 });
+
+test("reasoning is also exposed as reasoning_content", async () => {
+  upstream = () =>
+    Response.json({
+      object: "chat.completion",
+      choices: [{ index: 0, message: { role: "assistant", content: "2", reasoning: "1 plus 1 is 2" } }],
+    });
+
+  const { choices } = await (await chat()).json();
+
+  assert.equal(choices[0].message.reasoning, "1 plus 1 is 2");
+  assert.equal(choices[0].message.reasoning_content, "1 plus 1 is 2");
+});
+
+test("streamed reasoning deltas are also exposed as reasoning_content", async () => {
+  const sse =
+    'data: {"choices":[{"delta":{"reasoning":"Here"}}]}\n\n' +
+    'data: {"choices":[{"delta":{"content":"2"}}]}\n\n' +
+    "data: [DONE]\n\n";
+  const enc = new TextEncoder();
+  // Split mid-event, as network chunks may.
+  const body = new ReadableStream({
+    start(c) {
+      c.enqueue(enc.encode(sse.slice(0, 25)));
+      c.enqueue(enc.encode(sse.slice(25)));
+      c.close();
+    },
+  });
+  upstream = () => new Response(body, { headers: { "Content-Type": "text/event-stream" } });
+
+  const res = await chat({ model: "deepseek-r1", stream: true, messages: [{ role: "user", content: "1+1" }] });
+
+  assert.equal(
+    await res.text(),
+    'data: {"choices":[{"delta":{"reasoning":"Here","reasoning_content":"Here"}}]}\n\n' +
+      'data: {"choices":[{"delta":{"content":"2"}}]}\n\n' +
+      "data: [DONE]\n\n",
+  );
+});

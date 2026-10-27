@@ -9,6 +9,7 @@ A Cloudflare Worker that exposes the [free.ai](https://free.ai/api/) API in the 
 | `POST /v1/chat/completions` | `POST /v1/chat/` | Forwarded as-is, `stream: true` supported |
 | `GET /v1/models` | `GET /v1/models` | Converted to OpenAI's `{"object":"list","data":[...]}`, chat / code models only |
 
+- Thinking models' `reasoning` is also copied to `reasoning_content` (DeepSeek convention), in both normal and streamed responses
 - Upstream errors `{"error":"..."}` are converted to OpenAI's `{"error":{"message":...}}`
 - CORS enabled, so browsers can call it directly
 - The relay stores no keys: the client's `Authorization` header is passed straight through to free.ai

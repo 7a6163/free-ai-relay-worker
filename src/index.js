@@ -10,6 +10,40 @@ async function upstreamError(res) {
   return Response.json({ error: { message, type: "upstream_error", code: res.status } }, { status: res.status });
 }
 
+// free.ai (vLLM) puts thinking in `reasoning`; many clients read DeepSeek's `reasoning_content`.
+function withReasoningContent(body) {
+  for (const choice of body.choices ?? []) {
+    for (const m of [choice.message, choice.delta]) {
+      if (m?.reasoning != null && m.reasoning_content === undefined) m.reasoning_content = m.reasoning;
+    }
+  }
+  return body;
+}
+
+// Rewrites SSE line by line; events can be split across chunks, so keep the partial last line.
+function sseReasoningContent() {
+  let partial = "";
+  const rewrite = (line) => {
+    // Only chunks carrying reasoning need parsing; the rest pass through byte-for-byte.
+    if (!line.startsWith("data:") || !line.includes('"reasoning"')) return line;
+    try {
+      return `data: ${JSON.stringify(withReasoningContent(JSON.parse(line.slice(5))))}`;
+    } catch {
+      return line;
+    }
+  };
+  return new TransformStream({
+    transform(chunk, controller) {
+      const lines = (partial + chunk).split("\n");
+      partial = lines.pop();
+      for (const line of lines) controller.enqueue(rewrite(line) + "\n");
+    },
+    flush(controller) {
+      if (partial) controller.enqueue(rewrite(partial));
+    },
+  });
+}
+
 async function route(request) {
   const { pathname } = new URL(request.url);
   // Pass the client's key through; the relay holds no secret of its own.
@@ -22,11 +56,14 @@ async function route(request) {
       body: request.body,
     });
     if (!res.ok) return upstreamError(res);
-    // Stream the body straight through so `stream: true` works if upstream supports it.
-    return new Response(res.body, {
-      status: res.status,
-      headers: { "Content-Type": res.headers.get("Content-Type") ?? "application/json" },
-    });
+    const type = res.headers.get("Content-Type") ?? "application/json";
+    if (type.includes("application/json")) {
+      return Response.json(withReasoningContent(await res.json()), { status: res.status });
+    }
+    const body = type.includes("text/event-stream")
+      ? res.body.pipeThrough(new TextDecoderStream()).pipeThrough(sseReasoningContent()).pipeThrough(new TextEncoderStream())
+      : res.body;
+    return new Response(body, { status: res.status, headers: { "Content-Type": type } });
   }
 
   if (request.method === "GET" && pathname === "/v1/models") {

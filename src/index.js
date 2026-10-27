@@ -2,15 +2,22 @@ const UPSTREAM = "https://api.free.ai/v1";
 // "*" is safe: auth is a bearer key the caller sends, never a cookie.
 const CORS = { "Access-Control-Allow-Origin": "*" };
 
-// Upstream errors are {"error":"msg"}; OpenAI clients expect {"error":{"message":...}}.
+// Upstream errors are {"error":"msg"} or {"error":{"error":"msg","code":"..."}};
+// OpenAI clients expect {"error":{"message":"<string>",...}}.
 async function upstreamError(res) {
   const text = await res.text();
   let message = text;
+  let code = res.status;
   try {
-    message = JSON.parse(text).error ?? text;
+    const { error } = JSON.parse(text);
+    if (typeof error === "string") message = error;
+    else if (error) {
+      message = error.error ?? error.message ?? JSON.stringify(error);
+      code = error.code ?? code;
+    }
   } catch {}
   return Response.json(
-    { error: { message, type: "upstream_error", code: res.status } },
+    { error: { message, type: "upstream_error", code } },
     { status: res.status },
   );
 }

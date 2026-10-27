@@ -201,3 +201,28 @@ test("streamed reasoning deltas are also exposed as reasoning_content", async ()
       "data: [DONE]\n\n",
   );
 });
+
+test("nested upstream error object is flattened to a string message with its code", async () => {
+  upstream = () =>
+    Response.json(
+      {
+        error: {
+          error: "Premium models run on a paid provider, so they need purchased tokens.",
+          code: "premium_requires_purchase",
+          model: "google/gemini-3.8-flash",
+        },
+      },
+      { status: 429 },
+    );
+
+  const res = await chat();
+
+  assert.equal(res.status, 429);
+  assert.deepEqual(await res.json(), {
+    error: {
+      message: "Premium models run on a paid provider, so they need purchased tokens.",
+      type: "upstream_error",
+      code: "premium_requires_purchase",
+    },
+  });
+});

@@ -2,16 +2,19 @@
   "name": "free-ai-relay",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
   "scripts": {
     "test": "node --test",
     "lint": "oxlint --deny-warnings",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "oxfmt": "0.75.0",
     "oxlint": "1.90.0"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

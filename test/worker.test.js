@@ -27,13 +27,20 @@ const chat = (body = { model: "qwen7b", messages: [{ role: "user", content: "hi"
 
 test("upstream error is returned in OpenAI error format", async () => {
   upstream = () =>
-    Response.json({ error: "chat queue is currently full. Please retry in a moment.", error_id: "c868a8e2" }, { status: 503 });
+    Response.json(
+      { error: "chat queue is currently full. Please retry in a moment.", error_id: "c868a8e2" },
+      { status: 503 },
+    );
 
   const res = await chat();
 
   assert.equal(res.status, 503);
   assert.deepEqual(await res.json(), {
-    error: { message: "chat queue is currently full. Please retry in a moment.", type: "upstream_error", code: 503 },
+    error: {
+      message: "chat queue is currently full. Please retry in a moment.",
+      type: "upstream_error",
+      code: 503,
+    },
   });
 });
 
@@ -52,7 +59,11 @@ test("streamed SSE response passes through unchanged", async () => {
   const sse = 'data: {"choices":[{"delta":{"content":"Hi"}}]}\n\ndata: [DONE]\n\n';
   upstream = () => new Response(sse, { headers: { "Content-Type": "text/event-stream" } });
 
-  const res = await chat({ model: "qwen7b", stream: true, messages: [{ role: "user", content: "hi" }] });
+  const res = await chat({
+    model: "qwen7b",
+    stream: true,
+    messages: [{ role: "user", content: "hi" }],
+  });
 
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("Content-Type"), "text/event-stream");
@@ -95,7 +106,9 @@ test("models are listed in OpenAI format, chat and code only", async () => {
 });
 
 test("unknown route returns an OpenAI-style 404 without calling upstream", async () => {
-  const res = await worker.fetch(new Request("https://relay.test/v1/embeddings", { method: "POST" }));
+  const res = await worker.fetch(
+    new Request("https://relay.test/v1/embeddings", { method: "POST" }),
+  );
 
   assert.equal(res.status, 404);
   assert.equal((await res.json()).error.type, "invalid_request_error");
@@ -117,7 +130,10 @@ test("CORS preflight is answered without calling upstream", async () => {
   const res = await worker.fetch(
     new Request("https://relay.test/v1/chat/completions", {
       method: "OPTIONS",
-      headers: { Origin: "https://app.test", "Access-Control-Request-Headers": "authorization, content-type" },
+      headers: {
+        Origin: "https://app.test",
+        "Access-Control-Request-Headers": "authorization, content-type",
+      },
     }),
   );
 
@@ -137,14 +153,17 @@ test("every response carries the CORS origin header", async () => {
   const models = await worker.fetch(new Request("https://relay.test/v1/models"));
   const missing = await worker.fetch(new Request("https://relay.test/nope"));
 
-  for (const res of [ok, failed, models, missing]) assert.equal(res.headers.get("Access-Control-Allow-Origin"), "*");
+  for (const res of [ok, failed, models, missing])
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), "*");
 });
 
 test("reasoning is also exposed as reasoning_content", async () => {
   upstream = () =>
     Response.json({
       object: "chat.completion",
-      choices: [{ index: 0, message: { role: "assistant", content: "2", reasoning: "1 plus 1 is 2" } }],
+      choices: [
+        { index: 0, message: { role: "assistant", content: "2", reasoning: "1 plus 1 is 2" } },
+      ],
     });
 
   const { choices } = await (await chat()).json();
@@ -169,7 +188,11 @@ test("streamed reasoning deltas are also exposed as reasoning_content", async ()
   });
   upstream = () => new Response(body, { headers: { "Content-Type": "text/event-stream" } });
 
-  const res = await chat({ model: "deepseek-r1", stream: true, messages: [{ role: "user", content: "1+1" }] });
+  const res = await chat({
+    model: "deepseek-r1",
+    stream: true,
+    messages: [{ role: "user", content: "1+1" }],
+  });
 
   assert.equal(
     await res.text(),

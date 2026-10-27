@@ -6,15 +6,21 @@ const CORS = { "Access-Control-Allow-Origin": "*" };
 async function upstreamError(res) {
   const text = await res.text();
   let message = text;
-  try { message = JSON.parse(text).error ?? text; } catch {}
-  return Response.json({ error: { message, type: "upstream_error", code: res.status } }, { status: res.status });
+  try {
+    message = JSON.parse(text).error ?? text;
+  } catch {}
+  return Response.json(
+    { error: { message, type: "upstream_error", code: res.status } },
+    { status: res.status },
+  );
 }
 
 // free.ai (vLLM) puts thinking in `reasoning`; many clients read DeepSeek's `reasoning_content`.
 function withReasoningContent(body) {
   for (const choice of body.choices ?? []) {
     for (const m of [choice.message, choice.delta]) {
-      if (m?.reasoning != null && m.reasoning_content === undefined) m.reasoning_content = m.reasoning;
+      if (m?.reasoning != null && m.reasoning_content === undefined)
+        m.reasoning_content = m.reasoning;
     }
   }
   return body;
@@ -61,7 +67,10 @@ async function route(request) {
       return Response.json(withReasoningContent(await res.json()), { status: res.status });
     }
     const body = type.includes("text/event-stream")
-      ? res.body.pipeThrough(new TextDecoderStream()).pipeThrough(sseReasoningContent()).pipeThrough(new TextEncoderStream())
+      ? res.body
+          .pipeThrough(new TextDecoderStream())
+          .pipeThrough(sseReasoningContent())
+          .pipeThrough(new TextEncoderStream())
       : res.body;
     return new Response(body, { status: res.status, headers: { "Content-Type": type } });
   }
@@ -79,7 +88,12 @@ async function route(request) {
   }
 
   return Response.json(
-    { error: { message: `Unknown route: ${request.method} ${pathname}`, type: "invalid_request_error" } },
+    {
+      error: {
+        message: `Unknown route: ${request.method} ${pathname}`,
+        type: "invalid_request_error",
+      },
+    },
     { status: 404 },
   );
 }

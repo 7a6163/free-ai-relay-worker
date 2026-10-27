@@ -4,10 +4,10 @@ A Cloudflare Worker that exposes the [free.ai](https://free.ai/api/) API in the 
 
 ## Features
 
-| Relay route | free.ai endpoint | Transformation |
-|---|---|---|
-| `POST /v1/chat/completions` | `POST /v1/chat/` | Forwarded as-is, `stream: true` supported |
-| `GET /v1/models` | `GET /v1/models` | Converted to OpenAI's `{"object":"list","data":[...]}`, chat / code models only |
+| Relay route                 | free.ai endpoint | Transformation                                                                  |
+| --------------------------- | ---------------- | ------------------------------------------------------------------------------- |
+| `POST /v1/chat/completions` | `POST /v1/chat/` | Forwarded as-is, `stream: true` supported                                       |
+| `GET /v1/models`            | `GET /v1/models` | Converted to OpenAI's `{"object":"list","data":[...]}`, chat / code models only |
 
 - Thinking models' `reasoning` is also copied to `reasoning_content` (DeepSeek convention), in both normal and streamed responses
 - Upstream errors `{"error":"..."}` are converted to OpenAI's `{"error":{"message":...}}`
@@ -44,6 +44,7 @@ Requires Node 24+ (see `.node-version`).
 npm ci
 npm test          # node:test; free.ai is replaced by a fake fetch at the network boundary
 npm run lint      # oxlint
+npm run fmt       # oxfmt (CI runs `npm run fmt:check`)
 npm run dev       # run locally (wrangler dev)
 npm run deploy    # deploy to Cloudflare
 ```

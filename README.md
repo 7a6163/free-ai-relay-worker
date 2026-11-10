@@ -63,10 +63,14 @@ npm run dev       # run locally (wrangler dev)
 npm run deploy    # deploy to Cloudflare
 ```
 
-Before deploying to your own account, change or remove `account_id` in `wrangler.jsonc`.
+If your Cloudflare login has several accounts, pick one with `CLOUDFLARE_ACCOUNT_ID` (e.g. in a git-ignored `.env` file, which Wrangler loads automatically).
 
 ## Caveats
 
 - Only self-hosted models run on the free daily allowance; other models (even ones tagged `:free`) need purchased tokens. `/v1/models` lists only `qwen7b` and `deepseek-r1`, but any model id can still be used directly.
 - free.ai's self-hosted models currently don't validate the key, so anyone who knows the relay URL can use it.
 - Free-tier limits may be per source IP, so requests through Cloudflare may share rate limits.
+
+## License
+
+[MIT](LICENSE)
